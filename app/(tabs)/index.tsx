@@ -1,98 +1,154 @@
-import { Image } from 'expo-image';
-import { Platform, StyleSheet } from 'react-native';
+import React, { useRef } from "react";
+import { useNotesCtx } from "../../context/NotesContext";
+import { FlatList, Pressable, Text, View } from "react-native";
+import { useRouter } from "expo-router";
+import NoteRow from "../../components/NoteRow";
+import Swipeable from "react-native-gesture-handler/ReanimatedSwipeable";
+import { Ionicons } from "@expo/vector-icons";
+import type ReanimatedSwipeable from "react-native-gesture-handler/ReanimatedSwipeable";
 
-import { HelloWave } from '@/components/hello-wave';
-import ParallaxScrollView from '@/components/parallax-scroll-view';
-import { ThemedText } from '@/components/themed-text';
-import { ThemedView } from '@/components/themed-view';
-import { Link } from 'expo-router';
+const ACTION_W = 84;
 
-export default function HomeScreen() {
+function SwipeNoteItem({
+  item,
+  onOpen,
+  onDelete,
+}: {
+  item: any;
+  onOpen: () => void;
+  onDelete: () => void;
+}) {
+  const swipeRef = useRef<any>(null);
+
+  const renderRightActions = () => (
+    <View
+      style={{
+        width: ACTION_W,
+        height: "100%",
+      }}
+    >
+      <Pressable
+        onPress={() => {
+          swipeRef.current?.close();
+          onDelete();
+        }}
+        style={{
+          flex: 1,
+          backgroundColor: "#E53935",
+          justifyContent: "center",
+          alignItems: "center",
+        }}
+      >
+        <Ionicons name="trash-bin" size={22} color="white" />
+      </Pressable>
+    </View>
+  );
+
   return (
-    <ParallaxScrollView
-      headerBackgroundColor={{ light: '#A1CEDC', dark: '#1D3D47' }}
-      headerImage={
-        <Image
-          source={require('@/assets/images/partial-react-logo.png')}
-          style={styles.reactLogo}
-        />
-      }>
-      <ThemedView style={styles.titleContainer}>
-        <ThemedText type="title">Welcome!</ThemedText>
-        <HelloWave />
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 1: Try it</ThemedText>
-        <ThemedText>
-          Edit <ThemedText type="defaultSemiBold">app/(tabs)/index.tsx</ThemedText> to see changes.
-          Press{' '}
-          <ThemedText type="defaultSemiBold">
-            {Platform.select({
-              ios: 'cmd + d',
-              android: 'cmd + m',
-              web: 'F12',
-            })}
-          </ThemedText>{' '}
-          to open developer tools.
-        </ThemedText>
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <Link href="/modal">
-          <Link.Trigger>
-            <ThemedText type="subtitle">Step 2: Explore</ThemedText>
-          </Link.Trigger>
-          <Link.Preview />
-          <Link.Menu>
-            <Link.MenuAction title="Action" icon="cube" onPress={() => alert('Action pressed')} />
-            <Link.MenuAction
-              title="Share"
-              icon="square.and.arrow.up"
-              onPress={() => alert('Share pressed')}
-            />
-            <Link.Menu title="More" icon="ellipsis">
-              <Link.MenuAction
-                title="Delete"
-                icon="trash"
-                destructive
-                onPress={() => alert('Delete pressed')}
-              />
-            </Link.Menu>
-          </Link.Menu>
-        </Link>
-
-        <ThemedText>
-          {`Tap the Explore tab to learn more about what's included in this starter app.`}
-        </ThemedText>
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 3: Get a fresh start</ThemedText>
-        <ThemedText>
-          {`When you're ready, run `}
-          <ThemedText type="defaultSemiBold">npm run reset-project</ThemedText> to get a fresh{' '}
-          <ThemedText type="defaultSemiBold">app</ThemedText> directory. This will move the current{' '}
-          <ThemedText type="defaultSemiBold">app</ThemedText> to{' '}
-          <ThemedText type="defaultSemiBold">app-example</ThemedText>.
-        </ThemedText>
-      </ThemedView>
-    </ParallaxScrollView>
+  <View style={{ marginBottom: 10, borderRadius: 10, overflow: "hidden" }}>
+    <Swipeable
+      ref={swipeRef}
+      renderRightActions={renderRightActions}
+      overshootRight={false}
+      friction={2}
+      rightThreshold={40}
+    >
+      <NoteRow
+        title={item.title}
+        preview={item.content}
+        updatedAt={item.updatedAt}
+        onPress={onOpen}
+      />
+    </Swipeable>
+  </View>
   );
 }
 
-const styles = StyleSheet.create({
-  titleContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  stepContainer: {
-    gap: 8,
-    marginBottom: 8,
-  },
-  reactLogo: {
-    height: 178,
-    width: 290,
-    bottom: 0,
-    left: 0,
-    position: 'absolute',
-  },
-});
+export default function NotesIndex() {
+  const router = useRouter();
+  const { notes, loaded, deleteNote } = useNotesCtx();
+
+  if (!loaded) {
+    return (
+      <View
+        style={{
+          flex: 1,
+          backgroundColor: "#1f1f1f",
+          justifyContent: "center",
+          alignItems: "center",
+        }}
+      >
+        <Text style={{ color: "white", opacity: 0.8 }}>Loading…</Text>
+      </View>
+    );
+  }
+
+  function onNewNote() {
+    const id = Date.now().toString();
+    router.push({ pathname: "/note/[id]", params: { id } });
+  }
+
+  return (
+    <View style={{ flex: 1, backgroundColor: "#2a2a2a" }}>
+      <FlatList
+        data={notes}
+        keyExtractor={(n) => n.id}
+        style={{ maxWidth: 600, alignSelf: "center", width: "100%" }}
+        contentContainerStyle={{
+          paddingHorizontal: 24,
+          paddingTop: 80,
+          paddingBottom: 120,
+        }}
+        ListHeaderComponent={
+          <View style={{ paddingBottom: 14 }}>
+            <Text style={{ color: "white", fontSize: 34, fontWeight: "800" }}>
+              Notes
+            </Text>
+            <Text style={{ color: "white", opacity: 0.65, marginTop: 6 }}>
+              {notes.length} notater
+            </Text>
+          </View>
+        }
+        renderItem={({ item }) => (
+          <SwipeNoteItem
+            item={item}
+            onOpen={() =>
+              router.push({
+                pathname: "/note/[id]",
+                params: { id: item.id },
+              })
+            }
+            onDelete={() => deleteNote(item.id)}
+          />
+        )}
+        ListEmptyComponent={
+          <View style={{ paddingTop: 40, opacity: 0.75 }}>
+            <Text style={{ color: "white", fontSize: 18, fontWeight: "600" }}>
+              Ingen notater ennå
+            </Text>
+            <Text style={{ color: "white", marginTop: 6, opacity: 0.8 }}>
+              Trykk på + for å lage et nytt notat.
+            </Text>
+          </View>
+        }
+      />
+
+      <Pressable
+        onPress={onNewNote}
+        style={{
+          position: "absolute",
+          right: 20,
+          bottom: 20,
+          width: 72,
+          height: 72,
+          borderRadius: 36,
+          backgroundColor: "#FFD60A",
+          alignItems: "center",
+          justifyContent: "center",
+        }}
+      >
+        <Ionicons name="add" size={32} color="#2a2a2a" />
+      </Pressable>
+    </View>
+  );
+}
