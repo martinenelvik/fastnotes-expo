@@ -1,11 +1,13 @@
 import { useNotesCtx } from "../../context/NotesContext";
 import { Stack, useLocalSearchParams, useRouter } from "expo-router";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Pressable, Text, TextInput, View } from "react-native";
+import { Pressable, Text, TextInput, View, Alert } from "react-native";
 import { KeyboardAvoidingView, Platform, ScrollView } from "react-native";
 
 export default function NoteEditor() {
   const router = useRouter();
+
+  
 
   const { id } = useLocalSearchParams<{ id: string }>();
   const noteId = String(id ?? "");
@@ -24,6 +26,15 @@ export default function NoteEditor() {
   // Track auto-title (for nye notater)
   const autoTitleUsedRef = useRef(false);
 
+  useEffect(() => {
+  if (!existing) return;
+
+  setTitle(existing.title ?? "");
+  setContent(existing.content ?? "");
+
+  autoTitleUsedRef.current = true;
+  }, [existing]);
+  
   // Når vi åpner et eksisterende notat: fyll inn feltene
   useEffect(() => {
     if (!existing) return;
@@ -49,11 +60,13 @@ export default function NoteEditor() {
     }
   }, [content, title]);
 
+  
+
   function onBack() {
     router.back();
   }
 
-  function onSave() {
+  async function onSave() {
     if (!noteId) return;
 
     const hasText = title.trim().length > 0 || content.trim().length > 0;
@@ -63,17 +76,26 @@ export default function NoteEditor() {
       return;
     }
 
-    upsertNote({
+    const saved = await upsertNote({
       id: noteId,
       title: title.trim(),
       content,
-      updatedAt: Date.now(),
     });
 
+    Alert.alert("Vellykket", "Notatet ble lagret.");
     router.back();
   }
 
-  const canSave = title.trim().length > 0 || content.trim().length > 0;
+  const isCreating = noteId === "new";
+  const canSave = !isCreating && (title.trim().length > 0 || content.trim().length > 0);
+
+  if (isCreating) {
+  return (
+    <View style={{ flex: 1, backgroundColor: "#121212", justifyContent: "center", alignItems: "center" }}>
+      <Text style={{ color: "white", opacity: 0.8 }}>Lager notat…</Text>
+    </View>
+  );
+}
 
  return (
   <>

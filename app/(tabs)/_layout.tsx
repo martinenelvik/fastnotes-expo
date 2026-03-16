@@ -6,7 +6,7 @@ export default function TabsLayout() {
       <Tabs.Screen
         name="index"
         options={{
-          title: "Notes",
+          title: "Jobb Notater",
           headerShown: false,
         }}
       />
